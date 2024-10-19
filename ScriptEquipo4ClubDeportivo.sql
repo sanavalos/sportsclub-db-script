@@ -141,7 +141,7 @@ create table Socios(
 create table No_Socios(
   id_usuario int,
   id_estado int not null,
-  imagen_apto_físico mediumblob,
+  imagen_apto_fisico mediumblob,
   constraint pk_no_socio primary key(id_usuario),
   constraint fk_no_socio_estado foreign key(id_estado) references Estados(id_estado),
   foreign key (id_usuario) REFERENCES Usuarios(id_usuario)
@@ -149,48 +149,45 @@ create table No_Socios(
 
 delimiter //  
 
-create procedure Login(in p_email varchar(50), in p_pass varchar(50))
-begin
-	declare rol_user int default 0;
+create procedure Login(IN p_email VARCHAR(50), IN p_pass VARCHAR(50))
+BEGIN
+    DECLARE rol_user INT DEFAULT 0;
     
-    set rol_user = (select id_rol from usuarios where email = p_email AND pass = p_pass);
+    SET rol_user = (SELECT u.id_rol FROM usuarios u WHERE u.email = p_email AND u.pass = p_pass);
     
-    if rol_user = 1 then
-		select id_usuario, nombre, apellido, nombre_tipo_documento, documento, telefono, 
-			   email, direccion, nombre_rol
-		from usuarios u
-		inner join roles r on u.id_rol = r.id_rol
-        inner join tipos_documentos t on u.id_tipo_documento = t.id_tipo_documento
-		where u.email = p_email AND u.pass = p_pass;
-	ELSEIF rol_user = 2 then
-		select id_usuario, nombre, apellido, nombre_tipo_documento, documento, telefono, 
-			   email, direccion, nombre_rol, nro_carnet, tiene_deuda, fecha_vencimiento,
-               imagen_carnet, nombre_estado, nombre_tipo_documento, imagen_apto_físico,
-               monto_mensual
-		from usuarios u
-		inner join roles r on u.id_rol = r.id_rol
-        inner join tipos_documentos t on u.id_tipo_documento = t.id_tipo_documento
-        inner join socios s on u.id_usuario = s.id_usuario
-        inner join estados e on s.id_estado = e.id_estado
-        inner join planes p on s.id_plan = p.id_plan
-		where u.email = p_email AND u.pass = p_pass;
-    ELSEIF rol_user = 3 then
-		select id_usuario, nombre, apellido, nombre_tipo_documento, documento, telefono, 
-			   email, direccion, nombre_rol, nombre_estado, nombre_tipo_documento, imagen_apto_físico
-		from usuarios u
-		inner join roles r on u.id_rol = r.id_rol
-        inner join tipos_documentos t on u.id_tipo_documento = t.id_tipo_documento
-        inner join no_socios n on n.id_usuario = u.id_usuario
-        inner join estados e on n.id_estado = e.id_estado
-		where u.email = p_email AND u.pass = p_pass;
-	END IF;
-END //
-
-create procedure VerificarExistencia(in p_email varchar(50), in p_documento varchar(20), in p_tipo_documento int)
-begin
-    select count(*) from usuarios where email = p_email OR 
-						(documento = p_documento AND id_tipo_documento = p_tipo_documento);
-END //
+    IF rol_user = 1 THEN
+        SELECT u.id_usuario, u.nombre, u.apellido, t.nombre_tipo_documento, u.documento, 
+               u.telefono, u.email, u.direccion, r.nombre_rol
+        FROM usuarios u
+        INNER JOIN roles r ON u.id_rol = r.id_rol
+        INNER JOIN tipos_documentos t ON u.id_tipo_documento = t.id_tipo_documento
+        WHERE u.email = p_email AND u.pass = p_pass;
+        
+    ELSEIF rol_user = 2 THEN
+        SELECT u.id_usuario, u.nombre, u.apellido, t.nombre_tipo_documento, u.documento, 
+               u.telefono, u.email, u.direccion, r.nombre_rol, s.nro_carnet, s.tiene_deuda, 
+               s.fecha_vencimiento, s.imagen_carnet, e.nombre_estado, t.nombre_tipo_documento, 
+               s.imagen_apto_fisico, p.monto_mensual
+        FROM usuarios u
+        INNER JOIN roles r ON u.id_rol = r.id_rol
+        INNER JOIN tipos_documentos t ON u.id_tipo_documento = t.id_tipo_documento
+        INNER JOIN socios s ON u.id_usuario = s.id_usuario
+        INNER JOIN estados e ON s.id_estado = e.id_estado
+        INNER JOIN planes p ON s.id_plan = p.id_plan
+        WHERE u.email = p_email AND u.pass = p_pass;
+        
+    ELSEIF rol_user = 3 THEN
+        SELECT u.id_usuario, u.nombre, u.apellido, t.nombre_tipo_documento, u.documento, 
+               u.telefono, u.email, u.direccion, r.nombre_rol, e.nombre_estado, 
+               t.nombre_tipo_documento, n.imagen_apto_fisico
+        FROM usuarios u
+        INNER JOIN roles r ON u.id_rol = r.id_rol
+        INNER JOIN tipos_documentos t ON u.id_tipo_documento = t.id_tipo_documento
+        INNER JOIN no_socios n ON n.id_usuario = u.id_usuario
+        INNER JOIN estados e ON n.id_estado = e.id_estado
+        WHERE u.email = p_email AND u.pass = p_pass;
+    END IF;
+END//
 
 create procedure ObtenerTiposDeDocumento()
 begin
@@ -242,6 +239,30 @@ begin
     values (p_id_usuario, p_id_estado, p_id_plan, p_nro_carnet, p_tiene_deuda, p_fecha_vencimiento, p_imagen_carnet, p_imagen_apto_fisico);
 END //
 
+create PROCEDURE RegistrarNoSocio(
+    in p_nombre varchar(20),
+    in p_apellido varchar(20),
+    in p_id_tipo_documento int,
+    in p_documento varchar(20),
+    in p_telefono varchar(20),
+    in p_email varchar(50),
+    in p_pass varchar(50),
+    in p_direccion varchar(50),
+    in p_id_rol int,
+    in p_imagen_apto_físico mediumblob,
+    in p_id_estado int,
+	out p_id_usuario int
+)
+begin
+
+    insert into Usuarios (nombre, apellido, id_tipo_documento, documento, telefono, email, pass, direccion, id_rol)
+    values (p_nombre, p_apellido, p_id_tipo_documento, p_documento, p_telefono, p_email, p_pass, p_direccion, p_id_rol);
+
+    set p_id_usuario = LAST_INSERT_ID();
+
+    insert into No_Socios (id_usuario, id_estado, imagen_apto_fisico)
+    values (p_id_usuario, p_id_estado, p_imagen_apto_fisico);
+END//
 
 create procedure RealizarPago(
     in p_id_usuario int,
