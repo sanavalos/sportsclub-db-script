@@ -188,7 +188,13 @@ BEGIN
         WHERE u.email = p_email AND u.pass = p_pass;
     END IF;
 END//
-
+	
+create procedure VerificarExistencia(in p_email varchar(50), in p_documento varchar(20), in p_tipo_documento int)
+begin
+    select count(*) from usuarios where email = p_email OR 
+						(documento = p_documento AND id_tipo_documento = p_tipo_documento);
+END //
+	
 create procedure ObtenerTiposDeDocumento()
 begin
     select * from tipos_documentos;
