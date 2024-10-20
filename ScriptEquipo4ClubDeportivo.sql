@@ -189,6 +189,12 @@ BEGIN
     END IF;
 END//
 
+create procedure VerificarExistencia(in p_email varchar(50), in p_documento varchar(20), in p_tipo_documento int)
+begin
+    select count(*) from usuarios where email = p_email OR 
+						(documento = p_documento AND id_tipo_documento = p_tipo_documento);
+END //
+
 create procedure ObtenerTiposDeDocumento()
 begin
     select * from tipos_documentos;
@@ -279,6 +285,14 @@ begin
 
     set p_id_pago = LAST_INSERT_ID();
 
+END //
+
+create procedure EmitirCarnet(in p_id_usuario int)
+BEGIN
+	SELECT u.id_usuario, u.nombre, u.apellido, u.documento, s.nro_carnet, s.imagen_carnet
+        FROM usuarios u
+        INNER JOIN socios s ON u.id_usuario = s.id_usuario
+        WHERE u.id_usuario = p_id_usuario;
 END //
 
 delimiter ; 
